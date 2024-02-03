@@ -31,14 +31,11 @@ use pocketmine\data\bedrock\BiomeIds;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockSpreadEvent;
 use pocketmine\event\Listener;
-use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\protocol\LevelEventPacket;
-use pocketmine\network\mcpe\protocol\types\ParticleIds;
 use pocketmine\plugin\PluginBase;
 use pocketmine\world\generator\GeneratorManager;
 use pocketmine\world\generator\hell\Nether;
-use pocketmine\world\particle\Particle;
 use pocketmine\world\sound\FizzSound;
+use serendipity\sponge\particle\EvaporationParticle;
 
 class Sponge extends PluginBase implements Listener{
 
@@ -157,12 +154,5 @@ class Sponge extends PluginBase implements Listener{
             $sponge->setWet(true);
         }
         $spongeBlockPosition->getWorld()->setBlockAt($spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ(), $sponge);
-    }
-}
-
-class EvaporationParticle implements Particle{
-    
-    public function encode(Vector3 $pos) : array{
-        return [LevelEventPacket::standardParticle(ParticleIds::EVAPORATION, 0, $pos)];
     }
 }
