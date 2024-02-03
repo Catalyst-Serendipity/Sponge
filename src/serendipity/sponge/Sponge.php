@@ -24,16 +24,34 @@ declare(strict_types=1);
 namespace serendipity\sponge;
 
 use pocketmine\block\Block;
-use pocketmine\block\Liquid;
 use pocketmine\block\Sponge as SpongeBlock;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\block\Water;
+use pocketmine\data\bedrock\BiomeIds;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockSpreadEvent;
 use pocketmine\event\Listener;
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
+use pocketmine\network\mcpe\protocol\types\ParticleIds;
 use pocketmine\plugin\PluginBase;
+use pocketmine\world\generator\GeneratorManager;
+use pocketmine\world\generator\hell\Nether;
+use pocketmine\world\particle\Particle;
+use pocketmine\world\sound\FizzSound;
 
 class Sponge extends PluginBase implements Listener{
+
+    public const DRY_BIOMES = [
+        BiomeIds::DESERT,
+        BiomeIds::DESERT_HILLS,
+        BiomeIds::DESERT_MUTATED,
+        BiomeIds::HELL, // should a hell biome be added ??
+        BiomeIds::SAVANNA,
+        BiomeIds::SAVANNA_MUTATED,
+        BiomeIds::SAVANNA_PLATEAU,
+        BiomeIds::SAVANNA_PLATEAU_MUTATED
+    ]; //TODO: more dry biomes ??
 
     protected function onEnable() : void{
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -61,17 +79,29 @@ class Sponge extends PluginBase implements Listener{
             }
         }
         /** @var SpongeBlock $sponge */
-        $underSponeBlock = $sponge->getPosition()->getWorld()->getBlock($sponge->getPosition()->down());
-        if($sponge !== null && !$sponge->isWet()){
+        if($sponge !== null){
+            $underSponeBlock = $sponge->getPosition()->getWorld()->getBlock($sponge->getPosition()->down());
             $spongeBlockPosition = $sponge->getPosition();
-            if($blockAgainst instanceof Water){
-                $this->absorbWater($sponge, $spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
-            }elseif(!$underSponeBlock->isSolid()){
-                $this->absorbWater($sponge, $spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
-            }
-            foreach($this->getNearBlocks($sponge) as $block){
-                if($block instanceof Water){
+            $world = $spongeBlockPosition->getWorld();
+            $biomeId = $world->getBiomeId($spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
+            if(!$sponge->isWet()){
+                if($blockAgainst instanceof Water){
                     $this->absorbWater($sponge, $spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
+                }elseif(!$underSponeBlock->isSolid()){
+                    $this->absorbWater($sponge, $spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
+                }
+                foreach($this->getNearBlocks($sponge) as $block){
+                    if($block instanceof Water){
+                        $this->absorbWater($sponge, $spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ());
+                    }
+                }
+            }else{
+                $generatorNameByClass = GeneratorManager::getInstance()->getGeneratorName(Nether::class);
+                $generatorNameByWorld = $world->getProvider()->getWorldData()->getGenerator();
+                if($generatorNameByWorld === $generatorNameByClass || strpos($generatorNameByWorld, $generatorNameByClass) || in_array($biomeId, self::DRY_BIOMES)){
+                    $sponge->setWet(false);
+                    $world->addSound($spongeBlockPosition, new FizzSound());
+                    $world->addParticle($spongeBlockPosition, new EvaporationParticle());
                 }
             }
         }
@@ -101,7 +131,7 @@ class Sponge extends PluginBase implements Listener{
     }
 
     public function isWaterBlock(Block $block) : bool{
-        return ($block instanceof Liquid) ? true : false;
+        return ($block instanceof Water) ? true : false;
     }
 
     public function absorbWater(Block $sponge, float|int $spongeX, float|int $spongeY, float|int $spongeZ) : void{
@@ -127,5 +157,12 @@ class Sponge extends PluginBase implements Listener{
             $sponge->setWet(true);
         }
         $spongeBlockPosition->getWorld()->setBlockAt($spongeBlockPosition->getX(), $spongeBlockPosition->getY(), $spongeBlockPosition->getZ(), $sponge);
+    }
+}
+
+class EvaporationParticle implements Particle{
+    
+    public function encode(Vector3 $pos) : array{
+        return [LevelEventPacket::standardParticle(ParticleIds::EVAPORATION, 0, $pos)];
     }
 }
