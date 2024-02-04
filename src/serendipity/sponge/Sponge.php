@@ -127,23 +127,19 @@ class Sponge extends PluginBase implements Listener{
         return $blocks;
     }
 
-    public function isWaterBlock(Block $block) : bool{
-        return ($block instanceof Water) ? true : false;
-    }
-
     public function absorbWater(Block $sponge, float|int $spongeX, float|int $spongeY, float|int $spongeZ) : void{
         /** @var SpongeBlock $sponge */
         $absorbedWaterCount = 0;
         $spongeBlockPosition = $sponge->getPosition();
-        for($x = $spongeX -7; $x <= $spongeX + 7; $x++){
-            for($y = $spongeY -7; $y <= $spongeY + 7; $y++){
-                for($z = $spongeZ -7; $z <= $spongeZ + 7; $z++){
+        for($x = $spongeX - 7; $x <= $spongeX + 7; $x++){
+            for($y = $spongeY - 7; $y <= $spongeY + 7; $y++){
+                for($z = $spongeZ - 7; $z <= $spongeZ + 7; $z++){
                     $targetBlock = $spongeBlockPosition->getWorld()->getBlockAt($x, $y, $z);
-                    if($this->isWaterBlock($targetBlock) &&
+                    if($targetBlock instanceof Water &&
                     (abs($x - $spongeX) + abs($y - $spongeY) + abs($z - $spongeZ)) <= 7){
                         $sponge->getPosition()->getWorld()->setBlockAt($x, $y, $z, VanillaBlocks::AIR());
                         $absorbedWaterCount++;
-                        if ($absorbedWaterCount >= 65) {
+                        if($absorbedWaterCount >= 65){
                             break 3;
                         }
                     }
