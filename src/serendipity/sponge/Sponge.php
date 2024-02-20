@@ -118,12 +118,17 @@ class Sponge extends PluginBase implements Listener{
         $blocks = [];
         $blockPosition = $block->getPosition();
         $world = $blockPosition->getWorld();
-        $blocks[] = $world->getBlock($blockPosition->down());
-        $blocks[] = $world->getBlock($blockPosition->up());
-        $blocks[] = $world->getBlock($blockPosition->west());
-        $blocks[] = $world->getBlock($blockPosition->east());
-        $blocks[] = $world->getBlock($blockPosition->north());
-        $blocks[] = $world->getBlock($blockPosition->south());
+        $directions = [
+            $blockPosition->down(),
+            $blockPosition->up(),
+            $blockPosition->west(),
+            $blockPosition->east(),
+            $blockPosition->north(),
+            $blockPosition->south()
+        ];
+        foreach($directions as $direction){
+            $blocks[] = $world->getBlock($direction);
+        }
         return $blocks;
     }
 
