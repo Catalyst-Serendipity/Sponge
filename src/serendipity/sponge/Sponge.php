@@ -68,6 +68,8 @@ class Sponge extends PluginBase implements Listener{
 
     public function onBlockPlace(BlockPlaceEvent $event) : void{
         $blockAgainst = $event->getBlockAgainst();
+        $item = $event->getItem();
+        $player = $event->getPlayer();
         $sponge = null;
         foreach($event->getTransaction()->getBlocks() as [$x, $y, $z, $block]){
             if($block instanceof SpongeBlock){
@@ -76,7 +78,7 @@ class Sponge extends PluginBase implements Listener{
             }
         }
         /** @var SpongeBlock $sponge */
-        if($sponge !== null){
+        if($sponge !== null && ($item->getTypeId() === $sponge->asItem()->getTypeId())){
             $underSponeBlock = $sponge->getPosition()->getWorld()->getBlock($sponge->getPosition()->down());
             $spongeBlockPosition = $sponge->getPosition();
             $world = $spongeBlockPosition->getWorld();
@@ -100,6 +102,10 @@ class Sponge extends PluginBase implements Listener{
                     $world->addSound($spongeBlockPosition, new FizzSound());
                     $world->addParticle($spongeBlockPosition, new EvaporationParticle());
                 }
+            }
+            $item->pop();
+            if($player->hasFiniteResources()){
+                $player->getInventory()->setItemInHand($item);
             }
         }
     }
